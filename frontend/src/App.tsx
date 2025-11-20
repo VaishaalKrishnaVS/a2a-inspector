@@ -20,19 +20,43 @@ export interface Message {
 }
 
 export default function App() {
-  const [agent, setAgent] = useState<Agent | null>(null);
+  const [agent, setAgent] = useState<any>(null);
+  const [metadata, setMetadata] = useState<Record<string, string>>({});
   const [messages, setMessages] = useState<Message[]>([]);
 
-  const handleAgentSubmit = (agentData: Agent) => {
-    setAgent(agentData);
-    setMessages([
-      {
-        id: '1',
-        sender: 'agent',
-        content: `Hello! I'm ${agentData.name}. How can I assist you today?`,
-        timestamp: new Date(),
-      },
-    ]);
+  const handleAgentSubmit = async (url: string, formMetadata: Record<string, string>) => {
+    // Store metadata separately for different use
+    setMetadata(formMetadata);
+    try {
+      const backendUrl = 'http://127.0.0.1:8000/agent-card';
+      const encodedUrl = encodeURIComponent(url);
+      const apiUrl = `${backendUrl}?url=${encodedUrl}`;
+      
+      console.log('Fetching agent card from:', apiUrl);
+      
+      const response = await fetch(apiUrl);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ 
+          status: response.status, 
+          statusText: response.statusText 
+        }));
+        console.error('Error response JSON:', JSON.stringify(errorData, null, 2));
+        throw new Error(JSON.stringify(errorData, null, 2));
+      }
+      
+      const jsonData = await response.json();
+      
+      console.log('Agent card JSON response:', jsonData);
+      console.log(JSON.stringify(jsonData, null, 2));
+      
+      setAgent(jsonData);
+    } catch (error) {
+      const errorJson = error instanceof Error 
+        ? { message: error.message, stack: error.stack }
+        : { error: String(error) };
+      console.error('Error fetching agent card:', JSON.stringify(errorJson, null, 2));
+    }
   };
 
   const handleSendMessage = (content: string) => {
@@ -57,12 +81,13 @@ export default function App() {
     }, 1000);
   };
 
-  const generateAgentResponse = (userMessage: string, agent: Agent | null): string => {
+  const generateAgentResponse = (userMessage: string, agent: any): string => {
     if (!agent) return "I'm not sure how to respond to that.";
 
     const lowerMessage = userMessage.toLowerCase();
+    const agentName = agent.name || 'Agent';
 
-    return `As a ${agent.name}, I'm processing your request about "${userMessage}". How else can I assist you?`;
+    return `As a ${agentName}, I'm processing your request about "${userMessage}". How else can I assist you?`;
   };
 
   return (
@@ -78,7 +103,7 @@ export default function App() {
         {/* Top Section - Agent Configuration & Card */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           <AgentInput onSubmit={handleAgentSubmit} />
-          {agent && <AgentCard agent={agent} />}
+          {agent && <AgentCard agent={agent} metadata={metadata} />}
         </div>
 
         {/* Bottom Section - JSON Display & Chat Interface */}
@@ -102,6 +127,7 @@ export default function App() {
             />
           </div>
         )}
+
       </div>
     </div>
   );
