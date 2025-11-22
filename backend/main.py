@@ -2,14 +2,14 @@
 
 import json
 from collections.abc import AsyncGenerator
-from typing import Any
+from typing import Any, List, Optional
 
 import httpx
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
-from a2a.types import SendStreamingMessageResponse
+from a2a.types import Part, SendStreamingMessageResponse
 
 from client.a2a_client import create_agent_card, send_message
 from config import CORS_ALLOW_ORIGINS, get_app_config
@@ -61,7 +61,7 @@ async def get_agent_card(
 
     try:
         # Use SDK to fetch agent card (includes validation and caching)
-        agent_card = await create_agent_card(url)
+        agent_card = await create_agent_card(url, False)
 
         # Store in app state
         _app_state["agent_card_url"] = url
@@ -100,15 +100,59 @@ def _is_streaming_response(response: Any) -> bool:
     )
 
 
+def _extract_text_from_chunk(chunk: SendStreamingMessageResponse) -> Optional[str]:
+    """
+    Extract 'text' from streaming chunks shaped like the logs you pasted.
+    Returns a string or None if no text is present.
+    """
+    try:
+        # Helpful debug
+        try:
+            # This is safe; you’re already doing something similar
+            _log.info("chunk in extractor: %s", json.dumps(chunk, default=str))
+        except Exception:
+            pass
+
+        # 1) Get result
+        result = chunk.root.result
+        if not result:
+            return None
+
+        # Some chunks are initial "task" kind with history + no status.message
+        kind = result.kind
+        if kind != "status-update":
+            # Ignore non-stream text events if you only care about streaming deltas
+            return None
+
+        # 2) Get status
+        status = result.status or {}
+        message = status.message
+        if not message:
+            return None
+
+        # 3) Get parts (list of dicts)
+        parts: list[Part] = message.parts
+        text: str = ""
+        for p in parts:
+            if p.root.kind == "text":
+                text += p.root.text
+
+        return text or None
+
+    except Exception as e:
+        _log.exception("Failed to extract text from chunk: %s", e)
+        return None
+
+
 async def _generate_sse_stream(
     response: AsyncGenerator[SendStreamingMessageResponse, None],
 ) -> AsyncGenerator[str, None]:
     """Generate Server-Sent Events stream from async generator."""
     try:
         async for chunk in response:
-            chunk_data = _serialize_response(chunk)
-            yield f"data: {json.dumps(chunk_data, default=str)}\n\n"
-        yield "data: [DONE]\n\n"
+            data = _extract_text_from_chunk(chunk)
+            if data != None:
+                yield f"data: {data}\n\n"
     except Exception as e:
         _log.error(f"Error in streaming response: {e}", exc_info=True)
         error_data = {"error": str(e), "type": type(e).__name__}
