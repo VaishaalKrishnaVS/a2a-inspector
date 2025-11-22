@@ -399,7 +399,7 @@ export default function App() {
             {/* Left - JSON Display */}
             <div className="bg-slate-900 rounded-lg border border-slate-800 flex flex-col h-[500px]">
               <div className="px-6 py-4 border-b border-slate-800">
-                <h3 className="text-slate-50">Agent JSON</h3>
+                <h3 className="text-slate-50">Agent Card</h3>
               </div>
               <div className="flex-1 overflow-y-auto p-6 min-h-0">
                 <div className="bg-slate-950 rounded-lg p-4 border border-slate-800 overflow-y-auto">

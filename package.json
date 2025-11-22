@@ -1,0 +1,15 @@
+{
+  "name": "a2a-inspector",
+  "version": "1.0.0",
+  "description": "A2A Inspector - Configure and interact with agents in real-time",
+  "scripts": {
+    "start": "concurrently \"npm run start:backend\" \"npm run start:frontend\"",
+    "start:backend": "cd backend && uvicorn main:app --reload --host 127.0.0.1 --port 8000",
+    "start:frontend": "cd frontend && npm run dev",
+    "install:all": "cd frontend && npm install && cd ../backend && pip install -r requirements.txt"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
+
