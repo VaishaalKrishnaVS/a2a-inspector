@@ -108,7 +108,6 @@ async def _generate_sse_stream(
         async for chunk in response:
             chunk_data = _serialize_response(chunk)
             yield f"data: {json.dumps(chunk_data, default=str)}\n\n"
-        yield "data: [DONE]\n\n"
     except Exception as e:
         _log.error(f"Error in streaming response: {e}", exc_info=True)
         error_data = {"error": str(e), "type": type(e).__name__}
