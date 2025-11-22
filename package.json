@@ -1,0 +1,21 @@
+{
+  "name": "a2a-inspector",
+  "version": "1.0.0",
+  "description": "A2A Inspector - Configure and interact with agents in real-time",
+  "scripts": {
+    "start": "concurrently \"npm run start:backend\" \"npm run start:frontend\"",
+    "start:backend": "cd backend && uvicorn main:app --reload --host 127.0.0.1 --port 8000",
+    "start:frontend": "cd frontend && npm run dev",
+    "install:all": "cd frontend && npm install && cd ../backend && pip install -r requirements.txt",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up",
+    "docker:down": "docker-compose down",
+    "docker:dev": "docker-compose -f docker-compose.dev.yml up",
+    "docker:logs": "docker-compose logs -f",
+    "docker:clean": "docker-compose down -v && docker-compose build --no-cache"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
+
